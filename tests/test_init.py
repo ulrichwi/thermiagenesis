@@ -1,63 +1,60 @@
-"""Test Thermia Genesis setup process."""
+"""Setup, refresh and unload against genesis-wp-emulator (requirements 1, 3 and 7)."""
+
+from __future__ import annotations
+
 import pytest
-from custom_components.thermiagenesis import (
-    async_reload_entry,
-)
-from custom_components.thermiagenesis import (
-    async_setup_entry,
-)
-from custom_components.thermiagenesis import (
-    async_unload_entry,
-)
-from custom_components.thermiagenesis import (
-    ThermiaDataUpdateCoordinator,
-)
-from custom_components.thermiagenesis.const import (
-    DOMAIN,
-)
-from homeassistant.exceptions import ConfigEntryNotReady
+from custom_components.genesis_wp.const import DOMAIN
+from custom_components.genesis_wp.const import HEATPUMP_SENSOR
+from homeassistant.config_entries import ConfigEntryState
+from homeassistant.helpers import entity_registry as er
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from .const import MOCK_CONFIG
+from .harness import PROFILES
+from .helpers import Unreachable
+from .helpers import entry_data
+from .helpers import setup_entry
 
 
-# We can pass fixtures as defined in conftest.py to tell pytest to use the fixture
-# for a given test. We can also leverage fixtures and mocks that are available in
-# Home Assistant using the pytest_homeassistant_custom_component plugin.
-# Assertions allow you to verify that the return value of whatever is on the left
-# side of the assertion matches with the right side.
-async def test_setup_unload_and_reload_entry(hass, bypass_get_data):
-    """Test entry setup and unload."""
-    # Create a mock entry so we don't have to go through config flow
-    config_entry = MockConfigEntry(domain=DOMAIN, data=MOCK_CONFIG, entry_id="test")
+# DHF-REQ: genesis-wp-ha/requirement-1  DHF-TEST: genesis-wp-ha/ac-1
+# DHF-REQ: genesis-wp-ha/requirement-3  DHF-TEST: genesis-wp-ha/ac-7
+@pytest.mark.parametrize("profile", PROFILES)
+async def test_setup_refresh_and_unload(hass, start_emulator, profile):
+    emu = await start_emulator(profile)
+    entry = await setup_entry(hass, emu)
+    assert entry.state is ConfigEntryState.LOADED
 
-    # Set up the entry and assert that the values set during setup are where we expect
-    # them to be. Because we have patched the ThermiaDataUpdateCoordinator.async_get_data
-    # call, no code from custom_components/thermiagenesis/api.py actually runs.
-    assert await async_setup_entry(hass, config_entry)
-    assert DOMAIN in hass.data and config_entry.entry_id in hass.data[DOMAIN]
-    assert (
-        type(hass.data[DOMAIN][config_entry.entry_id]) is ThermiaDataUpdateCoordinator
-    )
+    coordinator = hass.data[DOMAIN][entry.entry_id]
+    await coordinator.async_refresh()  # HA raises on blocking calls inside the event loop
+    assert coordinator.last_update_success
+    assert coordinator.data[HEATPUMP_SENSOR] is not None
 
-    # Reload the entry and assert that the data from above is still there
-    assert await async_reload_entry(hass, config_entry) is None
-    assert DOMAIN in hass.data and config_entry.entry_id in hass.data[DOMAIN]
-    assert (
-        type(hass.data[DOMAIN][config_entry.entry_id]) is ThermiaDataUpdateCoordinator
-    )
+    entities = er.async_entries_for_config_entry(er.async_get(hass), entry.entry_id)
+    enabled = [e for e in entities if not e.disabled]
+    assert enabled
+    states = [hass.states.get(e.entity_id) for e in enabled]
+    assert all(state is not None for state in states)
+    numeric = [s for s in states if s.state not in ("unknown", "unavailable")]
+    assert len(numeric) >= len(enabled) // 2
 
-    # Unload the entry and verify that the data has been removed
-    assert await async_unload_entry(hass, config_entry)
-    assert config_entry.entry_id not in hass.data[DOMAIN]
+    assert await hass.config_entries.async_unload(entry.entry_id)
+    assert entry.state is ConfigEntryState.NOT_LOADED
+    assert coordinator.thermia._connection is None  # client closed
 
 
-async def test_setup_entry_exception(hass, error_on_get_data):
-    """Test ConfigEntryNotReady when API raises an exception during entry setup."""
-    config_entry = MockConfigEntry(domain=DOMAIN, data=MOCK_CONFIG, entry_id="test")
+async def test_unreachable_device_is_not_ready(hass, socket_enabled):
+    entry = MockConfigEntry(domain=DOMAIN, data=entry_data(Unreachable))
+    entry.add_to_hass(hass)
+    assert not await hass.config_entries.async_setup(entry.entry_id)
+    assert entry.state is ConfigEntryState.SETUP_RETRY
 
-    # In this case we are testing the condition where async_setup_entry raises
-    # ConfigEntryNotReady using the `error_on_get_data` fixture which simulates
-    # an error.
-    with pytest.raises(ConfigEntryNotReady):
-        assert await async_setup_entry(hass, config_entry)
+
+# DHF-REQ: genesis-wp-ha/requirement-7  DHF-TEST: genesis-wp-ha/ac-18
+async def test_two_entries_do_not_collide(hass, start_emulator):
+    first = await setup_entry(hass, await start_emulator())
+    second = await setup_entry(hass, await start_emulator())
+
+    registry = er.async_get(hass)
+    ids_first = {e.unique_id for e in er.async_entries_for_config_entry(registry, first.entry_id)}
+    ids_second = {e.unique_id for e in er.async_entries_for_config_entry(registry, second.entry_id)}
+    assert ids_first and len(ids_first) == len(ids_second)
+    assert ids_first.isdisjoint(ids_second)

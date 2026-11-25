@@ -1,96 +1,64 @@
-# Thermia Genesis
+# Genesis WP
 
-[![GitHub Release][releases-shield]][releases]
-[![GitHub Activity][commits-shield]][commits]
 [![License][license-shield]](LICENSE)
-
-[![pre-commit][pre-commit-shield]][pre-commit]
-[![Black][black-shield]][black]
-
 [![hacs][hacsbadge]][hacs]
-[![Project Maintenance][maintenance-shield]][user_profile]
-[![BuyMeCoffee][buymecoffeebadge]][buymecoffee]
 
-[![Discord][discord-shield]][discord]
-[![Community Forum][forum-shield]][forum]
+A custom component for [Home Assistant](https://home-assistant.io/), domain `genesis_wp`, for heat pumps built on the Thermia Genesis controller platform. They are reached over Modbus TCP. The first target is the Stiebel Eltron WPE-I 07.1 Plus, which has an internal WPM-G controller.
 
-This custom component for [home assistant](https://home-assistant.io/) will let you connect your Thermia Diplomat Inverter or
-Mega heat pump to Home Assistant using ModbusTCP.
+It is built on the [genesis-wp](https://github.com/david-aggeler/genesis-wp) library, and it can be installed alongside the upstream `thermiagenesis` integration.
 
-Supports all register values, 300+ entities are avaliable (most are disabled by default)
-
-**This component will set up the following platforms.**
-
-| Platform        | Description                         |
-| --------------- | ----------------------------------- |
-| `binary_sensor` | Show something `True` or `False`.   |
-| `sensor`        | Show info from Thermia Genesis API. |
-| `switch`        | Switch something `True` or `False`. |
+> **Status: in development, not released.** The integration is being moved onto the async, read-only genesis-wp library. Until that work is done, this tree still carries upstream's entities and its `pythermiagenesis` dependency. The target is a strictly read-only integration (sensor and binary_sensor) that never writes to the heat pump.
 
 ## Installation
 
-1. Using the tool of choice open the directory (folder) for your HA configuration (where you find `configuration.yaml`).
-2. If you do not have a `custom_components` directory (folder) there, you need to create it.
-3. In the `custom_components` directory (folder) create a new folder called `thermiagenesis`.
-4. Download _all_ the files from the `custom_components/thermiagenesis/` directory (folder) in this repository.
-5. Place the files you downloaded in the new directory (folder) you created.
-6. Restart Home Assistant
-7. In the HA UI go to "Configuration" -> "Integrations" click "+" and search for "Thermia Genesis"
+HACS custom repository, once a release is tagged:
 
-Using your HA configuration directory (folder) as a starting point you should now also have this:
+1. In HACS, add `https://github.com/david-aggeler/genesis-wp-ha` as a custom repository of type *Integration*.
+2. Install **Genesis WP** and restart Home Assistant.
+3. Go to *Settings → Devices & services → Add integration* and search for **Genesis WP**.
 
-```text
-custom_components/thermiagenesis/translations/en.json
-custom_components/thermiagenesis/translations/fr.json
-custom_components/thermiagenesis/translations/nb.json
-custom_components/thermiagenesis/translations/sensor.en.json
-custom_components/thermiagenesis/translations/sensor.fr.json
-custom_components/thermiagenesis/translations/sensor.nb.json
-custom_components/thermiagenesis/translations/sensor.nb.json
-custom_components/thermiagenesis/__init__.py
-custom_components/thermiagenesis/api.py
-custom_components/thermiagenesis/binary_sensor.py
-custom_components/thermiagenesis/config_flow.py
-custom_components/thermiagenesis/const.py
-custom_components/thermiagenesis/manifest.json
-custom_components/thermiagenesis/sensor.py
-custom_components/thermiagenesis/switch.py
-```
+Manual install: copy `custom_components/genesis_wp/` into your Home Assistant `custom_components/` folder and restart.
 
 ## Configuration is done in the UI
 
-<!---->
+*Settings → Devices & services → Add integration → Genesis WP* asks what to add:
+
+- **Real heat pump**: enter the host name or IP address and pick the model. The Modbus TCP port (default 502) sits under *Advanced*. The integration only reads; it never writes to the heat pump.
+- **Emulated heat pump**: pick a firmware profile recorded from a real unit. The integration runs [genesis-wp-emulator](https://github.com/david-aggeler/genesis-wp) inside Home Assistant on `127.0.0.1` with a free port and simulated drift. It never reaches a real device. A second step offers the plant's modules (hot water, pool, cooling, second heating circuit and others) as switches, starting from what the recording contains; the library decides which modules can be switched. Entities follow the chosen modules. To change them later, remove the entry and add it again. The device is named "… (emulated)" and can sit next to a real one. Removing or reloading the entry stops the emulator.
+
+Both kinds of entry have **Configure** (the options): one choice per module of the model. *Automatic* follows what the heat pump reports, and a module reported absent gets no entities. *Installed* keeps the entities of a fitted module the heat pump reports absent. A module that is fitted but switched off, such as passive cooling in winter, already keeps its entities on Automatic. *Not installed* hides a module the heat pump does not have. Saving reloads the entry.
+
+The heat pump's entities sit on child devices of the heat pump, one per plant section: heating system, additional heating circuits, buffer tank, hot water, cooling, pool, internal heat pump, refrigerant safety module, electric meter and energy, controller. A section without entities gets no child device. Alarms and read-only settings appear under *Diagnostic*.
+
+An emulator on another machine also works: run `genesis-wp-emulator --host 0.0.0.0 --port 5020 --dynamics` there (from the genesis-wp library's `emulator` extra), then add a **Real heat pump** with that host and port 5020.
+
+## Heating curve card
+
+The integration ships a dashboard card and loads it automatically; there is no resource to add. The card draws the heating curves of the listed circuits in one chart: supply temperature over outdoor temperature through the seven curve points of each circuit, a marker for each circuit's current operating point, and a legend with each circuit's current set temperature.
+
+```yaml
+type: custom:genesis-wp-heating-curve-card
+entities:
+  - sensor.stiebel_eltron_wpe_i_07_1_heating_circuit_1_set_temperature
+  - sensor.stiebel_eltron_wpe_i_07_1_heating_circuit_2_set_temperature
+# title: Heating curves   (optional; defaults to the device name)
+```
+
+For a single circuit, use `entity: <set temperature sensor>` instead of `entities`. The card only reads; it cannot change the curves.
 
 ## Contributions are welcome!
 
-If you want to contribute to this please read the [Contribution guidelines](CONTRIBUTING.md)
+If you want to contribute, please read the [contribution guidelines](CONTRIBUTING.md).
 
 ## Credits
 
-This project was generated from [@oncleben31](https://github.com/oncleben31)'s [Home Assistant Custom Component Cookiecutter](https://github.com/oncleben31/cookiecutter-homeassistant-custom-component) template.
+This is a fork of [ulrichwi/thermiagenesis](https://github.com/ulrichwi/thermiagenesis), which in turn forks [CJNE/thermiagenesis](https://github.com/CJNE/thermiagenesis) by [@cjne](https://github.com/cjne). MIT license, original copyright notice kept in [LICENSE](LICENSE).
 
-Code template was mainly taken from [@Ludeeus](https://github.com/ludeeus)'s [integration_blueprint][integration_blueprint] template
+Upstream was generated from [@oncleben31](https://github.com/oncleben31)'s [Home Assistant Custom Component Cookiecutter](https://github.com/oncleben31/cookiecutter-homeassistant-custom-component) template. The code template was mainly taken from [@Ludeeus](https://github.com/ludeeus)'s [integration_blueprint][integration_blueprint].
 
 ---
 
 [integration_blueprint]: https://github.com/custom-components/integration_blueprint
-[black]: https://github.com/psf/black
-[black-shield]: https://img.shields.io/badge/code%20style-black-000000.svg?style=for-the-badge
-[buymecoffee]: https://www.buymeacoffee.com/cjne
-[buymecoffeebadge]: https://img.shields.io/badge/buy%20me%20a%20coffee-donate-yellow.svg?style=for-the-badge
-[commits-shield]: https://img.shields.io/github/commit-activity/y/cjne/thermiagenesis.svg?style=for-the-badge
-[commits]: https://github.com/cjne/thermiagenesis/commits/main
 [hacs]: https://hacs.xyz
 [hacsbadge]: https://img.shields.io/badge/HACS-Custom-orange.svg?style=for-the-badge
-[discord]: https://discord.gg/Qa5fW2R
-[discord-shield]: https://img.shields.io/discord/330944238910963714.svg?style=for-the-badge
-[exampleimg]: example.png
-[forum-shield]: https://img.shields.io/badge/community-forum-brightgreen.svg?style=for-the-badge
-[forum]: https://community.home-assistant.io/
-[license-shield]: https://img.shields.io/github/license/cjne/thermiagenesis.svg?style=for-the-badge
-[maintenance-shield]: https://img.shields.io/badge/maintainer-%40cjne-blue.svg?style=for-the-badge
-[pre-commit]: https://github.com/pre-commit/pre-commit
-[pre-commit-shield]: https://img.shields.io/badge/pre--commit-enabled-brightgreen?style=for-the-badge
-[releases-shield]: https://img.shields.io/github/release/cjne/thermiagenesis.svg?style=for-the-badge
-[releases]: https://github.com/cjne/thermiagenesis/releases
-[user_profile]: https://github.com/cjne
+[license-shield]: https://img.shields.io/github/license/david-aggeler/genesis-wp-ha.svg?style=for-the-badge

@@ -1,120 +1,182 @@
-"""Test Thermia Genesis config flow."""
-from unittest.mock import patch
+"""Config flow: host, port and model, unit fixed to 1, verified by a read (requirement-4); duplicates and reconfigure (requirement-8)."""
 
-import pytest
-from custom_components.thermiagenesis.const import (
-    BINARY_SENSOR,
-)
-from custom_components.thermiagenesis.const import (
-    DOMAIN,
-)
-from custom_components.thermiagenesis.const import (
-    PLATFORMS,
-)
-from custom_components.thermiagenesis.const import (
-    SENSOR,
-)
-from custom_components.thermiagenesis.const import (
-    SWITCH,
-)
-from homeassistant import config_entries
-from homeassistant import data_entry_flow
-from pytest_homeassistant_custom_component.common import MockConfigEntry
+from __future__ import annotations
 
-from .const import MOCK_CONFIG
+import logging
+
+from custom_components.genesis_wp.const import CONF_ADVANCED
+from custom_components.genesis_wp.const import CONF_UNIT
+from custom_components.genesis_wp.const import DOMAIN
+from homeassistant.const import CONF_HOST
+from homeassistant.const import CONF_PORT
+from homeassistant.data_entry_flow import FlowResultType
+from homeassistant.data_entry_flow import section
+from homeassistant.helpers import entity_registry as er
+from homeassistant.helpers.selector import NumberSelector
+from homeassistant.helpers.selector import NumberSelectorMode
+
+from .helpers import Unreachable
+from .helpers import entry_data
+from .helpers import form_input
+from .helpers import real_form
+from .helpers import setup_entry
 
 
-# This fixture bypasses the actual setup of the integration
-# since we only want to test the config flow. We test the
-# actual functionality of the integration in other test modules.
-@pytest.fixture(autouse=True)
-def bypass_setup_fixture():
-    """Prevent setup."""
-    with patch(
-        "custom_components.thermiagenesis.async_setup",
-        return_value=True,
-    ), patch(
-        "custom_components.thermiagenesis.async_setup_entry",
-        return_value=True,
-    ):
-        yield
+async def _submit(hass, data):
+    """Submit the host form; a verified connection's module step is accepted with its defaults."""
+    result = await real_form(hass)
+    assert result["type"] is FlowResultType.FORM
+    result = await hass.config_entries.flow.async_configure(result["flow_id"], form_input(data))
+    if result["type"] is FlowResultType.FORM and result["step_id"] == "modules":
+        result = await hass.config_entries.flow.async_configure(result["flow_id"], {})
+    return result
 
 
-# Here we simiulate a successful config flow from the backend.
-# Note that we use the `bypass_get_data` fixture here because
-# we want the config flow validation to succeed during the test.
-async def test_successful_config_flow(hass, bypass_get_data):
-    """Test a successful config flow."""
-    # Initialize a config flow
-    result = await hass.config_entries.flow.async_init(
-        DOMAIN, context={"source": config_entries.SOURCE_USER}
-    )
+def _advanced_section(schema):
+    (advanced,) = [v for k, v in schema.schema.items() if k == CONF_ADVANCED]
+    assert isinstance(advanced, section)
+    return advanced
 
-    # Check that the config flow shows the user form as the first step
-    assert result["type"] == data_entry_flow.RESULT_TYPE_FORM
-    assert result["step_id"] == "user"
 
-    # If a user were to enter `test_username` for username and `test_password`
-    # for password, it would result in this function call
+# DHF-REQ: genesis-wp-ha/requirement-4  DHF-TEST: genesis-wp-ha/ac-8
+async def test_port_is_a_number_box_in_a_collapsed_section_and_unit_is_not_asked(hass, start_emulator):
+    result = await real_form(hass)
+    entry = await setup_entry(hass, await start_emulator())
+    reconfigure = await entry.start_reconfigure_flow(hass)
+
+    for form in (result, reconfigure):
+        schema = form["data_schema"]
+        assert {str(k) for k in schema.schema} >= {CONF_HOST, CONF_ADVANCED}
+        assert not {CONF_PORT, CONF_UNIT} & {str(k) for k in schema.schema}
+        advanced = _advanced_section(schema)
+        assert advanced.options["collapsed"] is True
+        fields = {str(k): v for k, v in advanced.schema.schema.items()}
+        assert set(fields) == {CONF_PORT}  # the WPM-G answers on unit 1; there is no gateway to address
+        assert isinstance(fields[CONF_PORT], NumberSelector)
+        config = fields[CONF_PORT].config
+        assert (config["mode"], config["min"], config["max"], config["step"]) == (NumberSelectorMode.BOX, 1, 65535, 1)
+
+
+# DHF-REQ: genesis-wp-ha/requirement-4  DHF-TEST: genesis-wp-ha/ac-8
+async def test_valid_input_creates_an_entry(hass, start_emulator):
+    emu = await start_emulator()
+    result = await _submit(hass, entry_data(emu))
+    assert result["type"] is FlowResultType.CREATE_ENTRY
+    assert result["data"] == entry_data(emu)  # flat: the section never reaches entry data
+    assert result["data"][CONF_UNIT] == 1
+    assert type(result["data"][CONF_PORT]) is int and type(result["data"][CONF_UNIT]) is int
+    assert emu.writes == []
+    await hass.async_block_till_done()
+
+
+# DHF-REQ: genesis-wp-ha/requirement-4  DHF-TEST: genesis-wp-ha/ac-8
+async def test_selector_floats_are_stored_as_ints(hass, start_emulator):
+    emu = await start_emulator()
+    data = {**entry_data(emu), CONF_PORT: float(emu.port)}  # NumberSelector returns floats
+    result = await _submit(hass, data)
+    assert result["type"] is FlowResultType.CREATE_ENTRY
+    assert type(result["data"][CONF_PORT]) is int and type(result["data"][CONF_UNIT]) is int
+    await hass.async_block_till_done()
+
+
+# DHF-REQ: genesis-wp-ha/requirement-4  DHF-TEST: genesis-wp-ha/ac-9
+async def test_unreachable_host_shows_cannot_connect(hass, socket_enabled):
+    result = await _submit(hass, entry_data(Unreachable))
+    assert result["type"] is FlowResultType.FORM
+    assert result["errors"] == {"base": "cannot_connect"}
+    assert hass.config_entries.async_entries(DOMAIN) == []
+
+
+# DHF-REQ: genesis-wp-ha/requirement-4  DHF-TEST: genesis-wp-ha/ac-10
+# DHF-REQ: genesis-wp-ha/requirement-8  DHF-TEST: genesis-wp-ha/ac-21
+async def test_duplicate_connection_aborts_without_host_unique_id(hass, start_emulator):
+    emu = await start_emulator()
+    result = await _submit(hass, entry_data(emu))
+    assert result["type"] is FlowResultType.CREATE_ENTRY
+    await hass.async_block_till_done()
+    (entry,) = hass.config_entries.async_entries(DOMAIN)
+    assert entry.unique_id is None or not ({emu.host, str(emu.port)} & set(entry.unique_id.split(":")))
+
+    result = await _submit(hass, entry_data(emu))
+    assert result["type"] is FlowResultType.ABORT
+    assert result["reason"] == "already_configured"
+    assert len(hass.config_entries.async_entries(DOMAIN)) == 1
+
+
+def _registry_pairs(hass, entry):
+    return {(e.entity_id, e.unique_id) for e in er.async_entries_for_config_entry(er.async_get(hass), entry.entry_id)}
+
+
+# DHF-REQ: genesis-wp-ha/requirement-8  DHF-TEST: genesis-wp-ha/ac-22
+async def test_reconfigure_to_new_host_keeps_entity_ids(hass, start_emulator):
+    emu_a = await start_emulator()
+    emu_b = await start_emulator()
+    entry = await setup_entry(hass, emu_a)
+    entry_id, before = entry.entry_id, _registry_pairs(hass, entry)
+    assert before
+
+    result = await entry.start_reconfigure_flow(hass)
+    assert result["type"] is FlowResultType.FORM
     result = await hass.config_entries.flow.async_configure(
-        result["flow_id"], user_input=MOCK_CONFIG
+        result["flow_id"], form_input(entry_data(emu_b), with_model=False)
     )
+    await hass.async_block_till_done()
 
-    # Check that the config flow is complete and a new entry is created with
-    # the input data
-    assert result["type"] == data_entry_flow.RESULT_TYPE_CREATE_ENTRY
-    assert result["title"] == "test_username"
-    assert result["data"] == MOCK_CONFIG
-    assert result["result"]
+    assert result["type"] is FlowResultType.ABORT
+    assert result["reason"] == "reconfigure_successful"
+    assert entry.data[CONF_PORT] == emu_b.port
+    assert entry.data[CONF_UNIT] == 1
+    assert hass.config_entries.async_get_entry(entry_id) is entry
+    assert _registry_pairs(hass, entry) == before
+    assert hass.data[DOMAIN][entry_id].last_update_success
 
 
-# In this case, we want to simulate a failure during the config flow.
-# We use the `error_on_get_data` mock instead of `bypass_get_data`
-# (note the function parameters) to raise an Exception during
-# validation of the input config.
-async def test_failed_config_flow(hass, error_on_get_data):
-    """Test a failed config flow due to credential validation failure."""
+# DHF-REQ: genesis-wp-ha/requirement-8  DHF-TEST: genesis-wp-ha/ac-21
+async def test_reconfigure_onto_another_entry_aborts(hass, start_emulator):
+    emu_a = await start_emulator()
+    emu_b = await start_emulator()
+    entry = await setup_entry(hass, emu_a)
+    await setup_entry(hass, emu_b)
 
-    result = await hass.config_entries.flow.async_init(
-        DOMAIN, context={"source": config_entries.SOURCE_USER}
-    )
-
-    assert result["type"] == data_entry_flow.RESULT_TYPE_FORM
-    assert result["step_id"] == "user"
-
+    result = await entry.start_reconfigure_flow(hass)
     result = await hass.config_entries.flow.async_configure(
-        result["flow_id"], user_input=MOCK_CONFIG
+        result["flow_id"], form_input(entry_data(emu_b), with_model=False)
     )
+    assert result["type"] is FlowResultType.ABORT
+    assert result["reason"] == "already_configured"
+    assert entry.data[CONF_PORT] == emu_a.port
 
-    assert result["type"] == data_entry_flow.RESULT_TYPE_FORM
-    assert result["errors"] == {"base": "auth"}
+
+def _host_records(caplog, host):
+    """Log records naming the host, from any logger except the in-process emulator and asyncio.
+
+    The emulator logs its own bind address: test topology, not the device. asyncio logs
+    connects only in loop debug mode, which the test plugin forces on and HA enables only
+    under --debug. Every other logger counts, including pymodbus.logging, which the
+    library's transport writes to.
+    """
+    return [
+        r for r in caplog.records
+        if r.name != "asyncio"
+        and not r.name.startswith("genesis_wp.emulator")
+        and host in r.getMessage()
+    ]
 
 
-# Our config flow also has an options flow, so we must test it as well.
-async def test_options_flow(hass):
-    """Test an options flow."""
-    # Create a new MockConfigEntry and add to HASS (we're bypassing config
-    # flow entirely)
-    entry = MockConfigEntry(domain=DOMAIN, data=MOCK_CONFIG, entry_id="test")
-    entry.add_to_hass(hass)
+# DHF-REQ: genesis-wp-ha/requirement-4  DHF-TEST: genesis-wp-ha/ac-11
+async def test_setup_and_refresh_never_log_the_host(hass, start_emulator, caplog):
+    caplog.set_level(logging.DEBUG)
+    emu = await start_emulator()
+    entry = await setup_entry(hass, emu)
+    await hass.data[DOMAIN][entry.entry_id].async_refresh()
+    await emu.stop()  # a failing refresh must not leak the host either
+    await hass.data[DOMAIN][entry.entry_id].async_refresh()
+    assert _host_records(caplog, emu.host) == []
 
-    # Initialize an options flow
-    await hass.config_entries.async_setup(entry.entry_id)
-    result = await hass.config_entries.options.async_init(entry.entry_id)
 
-    # Verify that the first options step is a user form
-    assert result["type"] == data_entry_flow.RESULT_TYPE_FORM
-    assert result["step_id"] == "user"
-
-    # Enter some fake data into the form
-    result = await hass.config_entries.options.async_configure(
-        result["flow_id"],
-        user_input={platform: platform != SENSOR for platform in PLATFORMS},
-    )
-
-    # Verify that the flow finishes
-    assert result["type"] == data_entry_flow.RESULT_TYPE_CREATE_ENTRY
-    assert result["title"] == "test_username"
-
-    # Verify that the options were updated
-    assert entry.options == {BINARY_SENSOR: True, SENSOR: False, SWITCH: True}
+# DHF-REQ: genesis-wp-ha/requirement-4  DHF-TEST: genesis-wp-ha/ac-52
+async def test_failed_connect_never_logs_the_host(hass, socket_enabled, caplog):
+    caplog.set_level(logging.DEBUG)
+    result = await _submit(hass, entry_data(Unreachable))
+    assert result["errors"] == {"base": "cannot_connect"}
+    assert _host_records(caplog, Unreachable.host) == []

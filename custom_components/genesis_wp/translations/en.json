@@ -1,0 +1,249 @@
+{
+  "title": "Genesis WP",
+  "config": {
+    "step": {
+      "user": {
+        "description": "Add a heat pump on the Thermia Genesis controller platform.",
+        "menu_options": {
+          "real": "Real heat pump",
+          "emulated": "Emulated heat pump"
+        }
+      },
+      "real": {
+        "description": "Set up a heat pump on the Thermia Genesis controller platform.",
+        "data": {
+          "host": "Host name or IP address",
+          "model": "Heat pump model"
+        },
+        "sections": {
+          "advanced": {
+            "name": "Advanced",
+            "description": "Most heat pumps use port 502.",
+            "data": {
+              "port": "Modbus TCP port"
+            }
+          }
+        }
+      },
+      "emulated": {
+        "description": "Run a recorded heat pump inside Home Assistant on a loopback port. It never reaches a real device.",
+        "data": {
+          "profile": "Firmware profile"
+        }
+      },
+      "modules": {
+        "title": "Plant modules",
+        "description": "Configure the modules fitted to the plant. For a real heat pump, automatic follows detection; installed keeps a module available even while switched off, and not installed hides it. For an emulated heat pump, switch the recorded modules on or off.\n\nReported now: {detected}",
+        "data": {
+          "heating_circuit_2": "Heating circuit 2 (mixing valve)",
+          "buffer_tank": "Buffer tank",
+          "hot_water": "Hot water",
+          "hot_gas_recovery": "Hot gas recovery",
+          "pool": "Pool",
+          "active_cooling": "Active cooling",
+          "passive_cooling": "Passive cooling",
+          "room_sensor": "Room temperature sensor",
+          "electric_meter": "Electric meter",
+          "heating_circuit_3": "Heating circuit 3",
+          "heating_circuit_4": "Heating circuit 4",
+          "external_heater": "External heater",
+          "smart_grid": "SG Ready",
+          "show_absent": "Show modules detected as not installed"
+        }
+      },
+      "reconfigure": {
+        "description": "Change how Home Assistant reaches this heat pump. Its entities and history stay.",
+        "data": {
+          "host": "Host name or IP address"
+        },
+        "sections": {
+          "advanced": {
+            "name": "Advanced",
+            "description": "Most heat pumps use port 502.",
+            "data": {
+              "port": "Modbus TCP port"
+            }
+          }
+        }
+      },
+      "absent_modules": {
+        "title": "Modules detected as not installed",
+        "description": "The heat pump reports these modules as not installed. Choose installed only for a module that is fitted although the heat pump does not report it.",
+        "data": {
+          "heating_circuit_2": "Heating circuit 2 (mixing valve)",
+          "heating_circuit_3": "Heating circuit 3",
+          "heating_circuit_4": "Heating circuit 4",
+          "buffer_tank": "Buffer tank",
+          "hot_water": "Hot water",
+          "hot_gas_recovery": "Hot gas recovery",
+          "pool": "Pool",
+          "active_cooling": "Active cooling",
+          "passive_cooling": "Passive cooling",
+          "room_sensor": "Room temperature sensor",
+          "external_heater": "External heater",
+          "electric_meter": "Electric meter",
+          "smart_grid": "SG Ready"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "The heat pump did not answer a read request."
+    },
+    "abort": {
+      "already_configured": "This heat pump, or this firmware profile with these modules, is already configured.",
+      "reconfigure_successful": "The heat pump connection was updated.",
+      "emulated_not_reconfigurable": "An emulated heat pump has no connection to change."
+    }
+  },
+  "options": {
+    "error": {
+      "nonfinite_number": "Enter a finite number.",
+      "invalid_buffer_reference_offset": "Enter a value from 0 to 10 K in increments of 0.5 K."
+    },
+    "step": {
+      "init": {
+        "title": "Modules",
+        "description": "Automatic follows what the heat pump reports. Choose installed for a module that is fitted although the heat pump does not report it, so its entities stay. Choose not installed to hide a module the heat pump does not have.\n\nReported now: {detected}",
+        "data": {
+          "heating_circuit_2": "Heating circuit 2 (mixing valve)",
+          "heating_circuit_3": "Heating circuit 3",
+          "heating_circuit_4": "Heating circuit 4",
+          "buffer_tank": "Buffer tank",
+          "hot_water": "Hot water",
+          "hot_gas_recovery": "Hot gas recovery",
+          "pool": "Pool",
+          "active_cooling": "Active cooling",
+          "passive_cooling": "Passive cooling",
+          "room_sensor": "Room temperature sensor",
+          "external_heater": "External heater",
+          "electric_meter": "Electric meter",
+          "smart_grid": "SG Ready",
+          "buffer_volume": "Buffer volume",
+          "buffer_reference_offset": "Buffer reference offset",
+          "circuit_flow": "Heating circuit 2 flow",
+          "show_absent": "Show modules detected as not installed"
+        }
+      },
+      "absent_modules": {
+        "title": "Modules detected as not installed",
+        "description": "The heat pump reports these modules as not installed. Choose installed only for a module that is fitted although the heat pump does not report it.",
+        "data": {
+          "heating_circuit_2": "Heating circuit 2 (mixing valve)",
+          "heating_circuit_3": "Heating circuit 3",
+          "heating_circuit_4": "Heating circuit 4",
+          "buffer_tank": "Buffer tank",
+          "hot_water": "Hot water",
+          "hot_gas_recovery": "Hot gas recovery",
+          "pool": "Pool",
+          "active_cooling": "Active cooling",
+          "passive_cooling": "Passive cooling",
+          "room_sensor": "Room temperature sensor",
+          "external_heater": "External heater",
+          "electric_meter": "Electric meter",
+          "smart_grid": "SG Ready"
+        }
+      }
+    }
+  },
+  "selector": {
+    "module": {
+      "options": {
+        "automatic": "Automatic",
+        "installed": "Installed",
+        "not_installed": "Not installed"
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "disabled_entities": {
+        "name": "Disabled entities"
+      },
+      "derived_last_discharge_restart_margin": {
+        "name": "Last discharge restart margin"
+      },
+      "derived_median_restart_margin_today": {
+        "name": "Median restart margin today"
+      },
+      "derived_buffer_judgement": {
+        "name": "Buffer judgement",
+        "state": {
+          "keep": "Keep",
+          "lower": "Lower",
+          "raise": "Raise"
+        }
+      },
+      "derived_curve_gap": {
+        "name": "Curve gap"
+      },
+      "derived_heat_to_rooms": {
+        "name": "Heat to the rooms"
+      },
+      "derived_heat_produced_today": {
+        "name": "Heat produced today"
+      },
+      "derived_heat_to_rooms_today": {
+        "name": "Heat to the rooms today"
+      },
+      "derived_starts_today": {
+        "name": "Starts today",
+        "unit_of_measurement": "starts"
+      },
+      "derived_hot_water_starts_today": {
+        "name": "Hot-water starts today",
+        "unit_of_measurement": "starts"
+      },
+      "derived_short_heating_runs_today": {
+        "name": "Short heating runs today",
+        "unit_of_measurement": "runs"
+      },
+      "derived_running_hours_today": {
+        "name": "Running hours today"
+      },
+      "derived_heating_run_minimum": {
+        "name": "Heating run minimum"
+      },
+      "derived_heating_run_mean": {
+        "name": "Heating run mean"
+      },
+      "derived_heating_run_maximum": {
+        "name": "Heating run maximum"
+      },
+      "derived_last_run_length": {
+        "name": "Last run length"
+      }
+    }
+  },
+  "device": {
+    "heating_system": {
+      "name": "Heating system"
+    },
+    "additional_heating_circuits": {
+      "name": "Additional heating circuits"
+    },
+    "buffer_tank": {
+      "name": "Buffer tank"
+    },
+    "hot_water": {
+      "name": "Hot water"
+    },
+    "cooling": {
+      "name": "Cooling"
+    },
+    "pool": {
+      "name": "Pool"
+    },
+    "internal_heat_pump": {
+      "name": "Internal heat pump"
+    },
+    "ksm": {
+      "name": "Refrigerant safety module (KSM)"
+    },
+    "electric_meter_and_energy": {
+      "name": "Electric meter and energy"
+    },
+    "controller": {
+      "name": "Controller"
+    }
+  }
+}
