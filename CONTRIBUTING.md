@@ -15,7 +15,7 @@ Pull requests are the best way to propose changes to the codebase.
 
 1. Fork the repo and create your branch from `main`.
 2. If you've changed something, update the documentation.
-3. Make sure your code lints (using black).
+3. Make sure your code lints (using flake8).
 4. Test you contribution.
 5. Issue that pull request!
 
@@ -44,8 +44,10 @@ People _love_ thorough bug reports. I'm not even kidding.
 
 ## Use a Consistent Coding Style
 
-Use [black](https://github.com/ambv/black) and [prettier](https://prettier.io/)
-to make sure the code follows the style.
+Keep the existing style of the file you change. The code base is not formatted
+with black or prettier, so do not reformat existing files: that would bury your
+change in unrelated diffs. `flake8` must stay clean (the CI runs
+`flake8 custom_components tests scripts`).
 
 Or use the `pre-commit` settings implemented in this repository
 (see deicated section below).
@@ -54,23 +56,21 @@ Or use the `pre-commit` settings implemented in this repository
 
 This custom component is based on [integration_blueprint template](https://github.com/custom-components/integration_blueprint).
 
-It comes with development environment in a container, easy to launch
-if you use Visual Studio Code. With this container you will have a stand alone
-Home Assistant instance running and already configured with the included
-[`.devcontainer/configuration.yaml`](./.devcontainer/configuration.yaml)
-file.
-
 You can use the `pre-commit` settings implemented in this repository to have
 linting tool checking your contributions (see deicated section below).
 
 You should also verify that existing [tests](./tests) are still working
 and you are encouraged to add new ones.
+The tests need Python 3.14 on Linux or macOS (Home Assistant imports `fcntl`); on
+Windows use WSL2. The virtual environment must be named `.venv` and sit in the
+repository root, because `tests/test_gate_config.py` runs `scripts/gate_python.sh`,
+which looks for `.venv/bin/python`.
 You can run the tests using the following commands from the root folder:
 
 ```bash
 # Create a virtual environment
-python3 -m venv venv
-source venv/bin/activate
+python3.14 -m venv .venv
+source .venv/bin/activate
 # Install requirements
 pip install -r requirements_test.txt
 # Run tests and get a summary of successes/failures and code coverage
