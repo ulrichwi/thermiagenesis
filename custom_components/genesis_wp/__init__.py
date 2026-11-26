@@ -147,7 +147,7 @@ def create_client(data, overrides=None, seen=None) -> ThermiaGenesis:
         port=data[CONF_PORT],
         kind=data[CONF_MODEL],
         unit_id=data[CONF_UNIT],
-        read_only=False,
+        read_only=True,
         capability_overrides=overrides,
         capabilities_seen=seen,
     )
