@@ -66,7 +66,7 @@ Only the integration's `emulated` mode is used: never choose `real` in the confi
 - **Onboarding and flow over REST** (typing into the login form is unreliable in the browser tool): `POST /api/onboarding/users`, `/auth/token`, `/api/onboarding/{core_config,analytics,integration}`, then `/api/config/config_entries/flow` with handler `genesis_wp`, `next_step_id=emulated`, `profile=<profile>`, and the module booleans. For the browser, run `/auth/login_flow` with `redirect_uri=http://localhost:8123<path>?auth_callback=1` and open `<redirect_uri>&code=<code>&state=<base64 of {"hassUrl":"http://localhost:8123","clientId":"http://localhost:8123/"}>`. The panel is at `/genesis-wp`.
 - **Credentials:** random and throwaway, stored only in `~/ha-test/credentials.txt` in WSL; never copy them into the repo or committed files.
 - **Checks:** entity states via `GET /api/states`; no `ERROR` lines from `genesis` in `~/ha-test/ha.log`; no write-related lines; `ss -tnp` shows only loopback sockets for the hass process.
-- **Known:** at emulator start HA warns about blocking `read_text`/`open` calls on `genesis_wp/emulator/profiles` and `observations` files; they come from the library's emulator (report in `genesis-wp`, see "Change tracking").
+- **Known defect (this repo, not the library):** at emulator start and in the emulated config flow, HA warns about blocking `read_text`/`open`/`scandir` calls. HA attributes them to `custom_components/genesis_wp/__init__.py` (`_start_emulator`, `get_profile`) and `config_flow.py` (`async_step_emulated`: `get_profile`, `packaged_profiles`). The library functions are synchronous by design; the integration must call them via `hass.async_add_executor_job`.
 
 ## Code conventions
 
