@@ -67,10 +67,11 @@ jobs:
           python-version: ${{ env.DEFAULT_PYTHON }}
       - name: Install requirements
         run: |
-          pip install -r requirements_test.txt
+          python -m venv .venv
+          .venv/bin/python -m pip install -r requirements_test.txt
       - name: Tests suite
         run: |
-          pytest \
+          .venv/bin/python -m pytest \
             --timeout=300 \
             --durations=10 \
             -n auto \
