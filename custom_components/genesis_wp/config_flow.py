@@ -222,10 +222,10 @@ class GenesisConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     async def async_step_emulated(self, user_input=None):
         """Pick a packaged firmware profile; the integration runs it in-process on loopback."""
         if user_input is not None:
-            self._profile = get_profile(user_input[CONF_PROFILE])
+            self._profile = await self.hass.async_add_executor_job(get_profile, user_input[CONF_PROFILE])
             return await self.async_step_modules()
 
-        profiles = packaged_profiles()
+        profiles = await self.hass.async_add_executor_job(packaged_profiles)
         schema = vol.Schema(
             {
                 vol.Required(CONF_PROFILE, default=profiles[-1]): selector(

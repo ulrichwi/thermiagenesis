@@ -247,11 +247,13 @@ async def read_capabilities(data) -> dict[str, str]:
         await client.close()
 
 
-async def _start_emulator(entry: ConfigEntry) -> Emulator:
+async def _start_emulator(hass: HomeAssistant, entry: ConfigEntry) -> Emulator:
     """Run the entry's firmware profile, with its module selection, in-process on a free loopback port."""
     try:
+        # The profile files are read from disk, so this must not run in the event loop.
+        profile = await hass.async_add_executor_job(get_profile, entry.data[CONF_PROFILE])
         emulator = Emulator(
-            get_profile(entry.data[CONF_PROFILE]),
+            profile,
             host=EMULATOR_HOST,
             port=0,
             dynamics=True,
@@ -272,7 +274,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
     emulator = None
     connection = entry.data
     if entry.data.get(CONF_MODE) == MODE_EMULATED:
-        emulator = await _start_emulator(entry)
+        emulator = await _start_emulator(hass, entry)
         connection = {
             **entry.data,
             CONF_HOST: emulator.host,
