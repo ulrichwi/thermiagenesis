@@ -3,8 +3,11 @@
 from __future__ import annotations
 
 import asyncio
+import threading
 
 import pytest
+from custom_components import genesis_wp as integration
+from custom_components.genesis_wp import config_flow
 from custom_components.genesis_wp.const import CONF_CAPABILITIES
 from custom_components.genesis_wp.const import CONF_MODE
 from custom_components.genesis_wp.const import CONF_MODEL
@@ -77,6 +80,35 @@ async def test_profile_step_lists_exactly_the_packaged_profiles(hass):
     assert result["type"] is FlowResultType.FORM
     (selector,) = [v for k, v in result["data_schema"].schema.items() if str(k) == CONF_PROFILE]
     assert [o["value"] for o in selector.config["options"]] == packaged_profiles()
+
+
+def _record_threads(monkeypatch, module, name, calls):
+    loop_thread = threading.get_ident()
+    real = getattr(module, name)
+
+    def wrapper(*args, **kwargs):
+        calls.append((name, threading.get_ident() == loop_thread))
+        return real(*args, **kwargs)
+
+    monkeypatch.setattr(module, name, wrapper)
+
+
+# Profile files are blocking reads; Home Assistant flags them when they run in the event loop.
+async def test_profile_files_are_read_off_the_event_loop(hass, socket_enabled, monkeypatch):
+    calls = []
+    for module, name in (
+        (config_flow, "packaged_profiles"),
+        (config_flow, "get_profile"),
+        (integration, "get_profile"),
+    ):
+        _record_threads(monkeypatch, module, name, calls)
+
+    entry = await _emulated_entry(hass)
+
+    # The profile list once, the chosen profile in the flow and again when the entry is set up.
+    assert sorted(name for name, _ in calls) == ["get_profile", "get_profile", "packaged_profiles"]
+    assert not [name for name, on_loop in calls if on_loop]
+    assert await hass.config_entries.async_unload(entry.entry_id)
 
 
 # DHF-REQ: genesis-wp-ha/requirement-10  DHF-TEST: genesis-wp-ha/ac-28
