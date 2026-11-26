@@ -46,7 +46,7 @@ Not relevant: other languages and frameworks, build toolchains for the frontend 
 
 ## Windows environment (host of this clone)
 
-- Shell is PowerShell. Python 3.14 is installed but not on `PATH`: use `py -3.14`. `.venv` does not exist yet; create it with `py -3.14 -m venv .venv`, then `.venv\Scripts\python.exe -m pip install -r requirements_test.txt`. Node is not installed, so the `.mjs` frontend tests cannot run until it is.
+- Shell is PowerShell. Python 3.14 is installed but not on `PATH`: use `py -3.14`. `.venv` does not exist yet; create it with `py -3.14 -m venv .venv`, then `.venv\Scripts\python.exe -m pip install -r requirements_test.txt`. Node is provided by `nodejs-wheel-binaries` in `requirements_test.txt`; no separate install is needed for the `.mjs` frontend tests.
 - Gate commands in `CLAUDE.md` use zsh and `.venv/bin/python`; on Windows use `.venv\Scripts\python.exe` and capture the result before filtering: `.venv\Scripts\python.exe -m pytest *> scratchpad\gate.out; $rc = $LASTEXITCODE`, then inspect `scratchpad\gate.out` and report `$rc`.
 - Gate rungs by intent: `static` = `python -m compileall custom_components`; `unit` = `python -m pytest` (hermetic); `integration` = pytest including emulator tests. The `system` rung (real plant) is never run from here.
 - `AGENTS.md` is a plain 9-byte text file (`CLAUDE.md`) on Windows, not a symlink (`core.symlinks=false`). Do not rewrite it; it is correct on Linux/macOS.
