@@ -56,7 +56,7 @@ Not relevant: other languages and frameworks, build toolchains for the frontend 
 
 ## Code conventions
 
-- Follow existing patterns; formatting by black (88 columns), flake8 and `reorder-python-imports` as configured in `.pre-commit-config.yaml` and `setup.cfg`; prettier for JS/JSON/YAML.
+- Follow existing patterns and keep the existing style of each file: the code base is not black-formatted (black would rewrite 40 of 43 files), so never run black or another formatter over existing files and avoid mass reformatting. `flake8` (config in `setup.cfg`, CI job `Flake8`) must stay clean; keep imports in the `reorder-python-imports` style (one import per line).
 - A not-fitted or unavailable value (`None` from the library) results in an unavailable/unknown entity, never in `0` or a coerced number.
 - No blocking I/O in the event loop. Log meaningful events (no feedback loop without logs), without host names or serial numbers.
 - Entity names and strings follow Home Assistant conventions; German text only in `translations/de.json`. Use US English spelling in code, comments, and commit messages.
