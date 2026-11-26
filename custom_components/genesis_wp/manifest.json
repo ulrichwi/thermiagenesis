@@ -7,13 +7,14 @@
     "panel_custom"
   ],
   "codeowners": [
+    "@ulrichwi",
     "@david-aggeler"
   ],
   "config_flow": true,
   "dependencies": [],
-  "documentation": "https://github.com/david-aggeler/genesis-wp-ha",
+  "documentation": "https://github.com/ulrichwi/thermiagenesis",
   "iot_class": "local_polling",
-  "issue_tracker": "https://github.com/david-aggeler/genesis-wp-ha/issues",
+  "issue_tracker": "https://github.com/ulrichwi/thermiagenesis/issues",
   "requirements": [
     "genesis-wp[emulator]@git+https://github.com/david-aggeler/genesis-wp@05c86610ffa1a452baba97e45a52cc728d9f7277"
   ],

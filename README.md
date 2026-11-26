@@ -13,7 +13,7 @@ It is built on the [genesis-wp](https://github.com/david-aggeler/genesis-wp) lib
 
 HACS custom repository, once a release is tagged:
 
-1. In HACS, add `https://github.com/david-aggeler/genesis-wp-ha` as a custom repository of type *Integration*.
+1. In HACS, add `https://github.com/ulrichwi/thermiagenesis` as a custom repository of type *Integration*.
 2. Install **Genesis WP** and restart Home Assistant.
 3. Go to *Settings → Devices & services → Add integration* and search for **Genesis WP**.
 
@@ -52,7 +52,11 @@ If you want to contribute, please read the [contribution guidelines](CONTRIBUTIN
 
 ## Credits
 
-This is a fork of [ulrichwi/thermiagenesis](https://github.com/ulrichwi/thermiagenesis), which in turn forks [CJNE/thermiagenesis](https://github.com/CJNE/thermiagenesis) by [@cjne](https://github.com/cjne). MIT license, original copyright notice kept in [LICENSE](LICENSE).
+This repository is maintained by [@ulrichwi](https://github.com/ulrichwi) (Ulrich Wirleitner). It is a fork of [CJNE/thermiagenesis](https://github.com/CJNE/thermiagenesis) by [@cjne](https://github.com/cjne).
+
+The async, read-only integration on the genesis-wp library was developed by [@david-aggeler](https://github.com/david-aggeler) (David Aggeler) in [david-aggeler/genesis-wp-ha](https://github.com/david-aggeler/genesis-wp-ha), and was merged into this repository. The [genesis-wp](https://github.com/david-aggeler/genesis-wp) library, which this integration depends on, is also his work.
+
+MIT license. The copyright notices of all three authors are kept in [LICENSE](LICENSE).
 
 Upstream was generated from [@oncleben31](https://github.com/oncleben31)'s [Home Assistant Custom Component Cookiecutter](https://github.com/oncleben31/cookiecutter-homeassistant-custom-component) template. The code template was mainly taken from [@Ludeeus](https://github.com/ludeeus)'s [integration_blueprint][integration_blueprint].
 
@@ -61,4 +65,4 @@ Upstream was generated from [@oncleben31](https://github.com/oncleben31)'s [Home
 [integration_blueprint]: https://github.com/custom-components/integration_blueprint
 [hacs]: https://hacs.xyz
 [hacsbadge]: https://img.shields.io/badge/HACS-Custom-orange.svg?style=for-the-badge
-[license-shield]: https://img.shields.io/github/license/david-aggeler/genesis-wp-ha.svg?style=for-the-badge
+[license-shield]: https://img.shields.io/github/license/ulrichwi/thermiagenesis.svg?style=for-the-badge
