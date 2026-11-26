@@ -136,7 +136,6 @@ async def test_rooms_today_counts_only_valid_pairs(hass, balance):
     assert state.attributes["coverage"] == pytest.approx(75)
 
 
-
 # DHF-TEST: genesis-wp-ha/requirement-29 genesis-wp-ha/ac-139
 async def test_coverage_counts_fr2_running_time_only(hass, balance):
     entry, refresh, _ = balance
@@ -149,6 +148,8 @@ async def test_coverage_counts_fr2_running_time_only(hass, balance):
     state = state_for(hass, entry, "heat_to_rooms_today")
     assert float(state.state) == pytest.approx(3)
     assert state.attributes["coverage"] == pytest.approx(75)
+
+
 # DHF-TEST: genesis-wp-ha/requirement-29 genesis-wp-ha/ac-140
 async def test_daily_counters_restore_and_roll_over(hass, balance):
     entry, refresh, advance = balance

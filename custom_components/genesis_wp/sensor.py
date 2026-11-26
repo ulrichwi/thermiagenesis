@@ -402,6 +402,7 @@ class FlowSensor(SensorEntity):
         await super().async_added_to_hass()
         self.async_on_remove(self.coordinator.async_add_listener(self.async_write_ha_state))
 
+
 # DHF-REQ: genesis-wp-ha/requirement-27 genesis-wp-ha/ac-118
 class HC2ReturnSensor(CoordinatorEntity, SensorEntity):
     """The estimated heating circuit 2 return temperature."""

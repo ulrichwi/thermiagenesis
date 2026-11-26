@@ -63,7 +63,6 @@ async def test_setup_reenables_legacy_integration_disabled_entities(hass, start_
         reload.assert_awaited_once_with(entry.entry_id)
 
 
-
 # DHF-TEST: genesis-wp-ha/requirement-19 genesis-wp-ha/ac-182
 async def test_setup_keeps_integration_disabler_when_new_entities_are_disabled(hass, start_emulator):
     entry = MockConfigEntry(
@@ -80,6 +79,7 @@ async def test_setup_keeps_integration_disabler_when_new_entities_are_disabled(h
     await hass.async_block_till_done()
 
     assert registry.async_get(preferred.entity_id).disabled_by == er.RegistryEntryDisabler.INTEGRATION
+
 
 # DHF-TEST: genesis-wp-ha/requirement-35 genesis-wp-ha/ac-183
 async def test_disabled_entities_diagnostic_tracks_registry_changes(hass, start_emulator):

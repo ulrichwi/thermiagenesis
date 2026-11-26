@@ -246,7 +246,6 @@ async def test_hc2_return_availability(hass, start_emulator, monkeypatch, disabl
         for key in ("hot_port_flow", "bypass_flow", "buffer_return_flow", "either_way_flow"):
             assert flows[key] is None
 
-
     emu.advance(121)
     await coordinator.async_refresh()
     assert hass.states.get(entity_id).state == "unavailable"

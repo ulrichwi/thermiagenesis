@@ -64,7 +64,7 @@ async def test_register_anchors_and_render(hass, start_emulator):
     fixture = {
         "entry": entry.entry_id,
         "states": {e.entity_id: {"state": hass.states.get(e.entity_id).state,
-                                  "attributes": dict(hass.states.get(e.entity_id).attributes)} for e in entities.values()},
+                                 "attributes": dict(hass.states.get(e.entity_id).attributes)} for e in entities.values()},
         "entities": {e.entity_id: {"device_id": e.device_id, "disabled_by": e.disabled_by} for e in entities.values()},
         "devices": {d.id: {"identifiers": list(d.identifiers), "name": d.name} for d in [*dr.async_entries_for_config_entry(dr.async_get(hass), entry.entry_id), *sub_devices(hass, entry).values()]},
     }

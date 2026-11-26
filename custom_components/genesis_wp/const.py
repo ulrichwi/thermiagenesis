@@ -954,7 +954,6 @@ SENSOR_TYPES = {
 }
 
 
-
 # DHF-REQ: genesis-wp-ha/requirement-17
 # These registers have a purpose outside the register entity platforms.
 REGISTER_EXCLUSIONS = {

@@ -21,6 +21,7 @@ from .harness import gates
 from .helpers import entry_data
 from .helpers import setup_entry
 
+
 def candidates() -> set[str]:
     """Every register the integration makes an entity of when no capability is absent."""
     fitted = {r for r, spec in c.REGISTERS.items() if spec[WPE_I_KIND]}

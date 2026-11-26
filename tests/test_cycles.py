@@ -102,7 +102,7 @@ async def test_heating_lengths_and_total_runtime(cycles):
 
 # DHF-TEST: genesis-wp-ha/requirement-28 genesis-wp-ha/ac-132
 @pytest.mark.parametrize(("minutes", "band"), [(5.9, "short_cycle"), (6, "very_short"),
-                                             (10, "short"), (30, "acceptable"), (60, "good")])
+                                               (10, "short"), (30, "acceptable"), (60, "good")])
 async def test_run_bands(cycles, minutes, band):
     _, run, read, _, _, _ = cycles
     await run(minutes)
@@ -111,7 +111,7 @@ async def test_run_bands(cycles, minutes, band):
 
 # DHF-TEST: genesis-wp-ha/requirement-28 genesis-wp-ha/ac-132
 @pytest.mark.parametrize(("minutes", "band"), [(29.9, "bad"), (30, "warning"),
-                                             (60, "acceptable"), (120, "good")])
+                                               (60, "acceptable"), (120, "good")])
 async def test_mean_bands(cycles, minutes, band):
     _, run, read, _, _, _ = cycles
     await run(minutes)
